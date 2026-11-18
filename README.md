@@ -1,6 +1,6 @@
 # E-commerce AI Assistant
 
-AI customer-service assistant for a fictional online tech store (TechNova). An LLM agent decides which tools to call to answer customers with grounded, verifiable information:
+AI customer-service assistant for a fictional online tech store (TechNova). An LLM agent decides which tools to call to answer customers with grounded, verifiable information instead of guessing.
 
 | Tool | What it does | Technique |
 |---|---|---|
@@ -21,28 +21,30 @@ User ──> Streamlit chat ──> LLM (tool calling) ──┬──> SQL tool
                                                   └──> review aggregation
 ```
 
-- Provider-agnostic: uses the OpenAI-compatible API, so the model can be swapped by changing two environment variables.
-- Guardrails: order IDs are validated before hitting the database, tool errors are returned to the model instead of crashing, a step limit prevents loops, and the system prompt forbids inventing order data or policy details.
-- Transparency: the chat shows which tools were called for each answer.
+- **Provider-agnostic:** uses the OpenAI-compatible API, so the model can be swapped through environment variables.
+- **Fault tolerance:** retries with backoff on rate limits and overloaded servers, and automatic fallback across a list of models. Built after the provider returned 503 errors during development.
+- **Guardrails:** order IDs are validated before hitting the database, tool errors are returned to the model instead of crashing the chat, a step limit prevents loops, and the system prompt forbids inventing order data or policy details.
+- **Transparency:** the chat shows which tools were called for each answer.
 
 ## Evaluation
 
-`avaliar.py` runs 20 test questions (orders, policies, reviews and out-of-scope / prompt-injection attempts) and measures:
+`avaliar.py` runs 30 test questions: orders, policies, reviews, out-of-scope requests, and 10 hard cases (uppercase or truncated order IDs, two questions in one message, edge cases outside the policy rules, an angry customer, prompt injection and a request for personal data).
 
 | Metric | Result |
 |---|---|
-| Tool routing accuracy | XX% |
-| Factual accuracy (expected info present in answer) | XX% |
-| Hallucinations found in manual review | X of 20 |
-| Average latency | X.X s |
+| Tool routing accuracy | 100% (30/30) |
+| Factual accuracy | 100% (21/21 checkable cases) |
+| Average latency | ~15 s (during provider overload) |
 
-Model: `MODELO_USADO`. Full results in `resultados/avaliacao.csv`.
+**What the evaluation caught:** the first run scored 95% factual accuracy. The failing case was "how many installments can I pay in?": retrieval missed the payment section because the customer's wording ("parcelar") didn't match the document heading. The agent did not hallucinate an answer; it said it couldn't find the information and offered a human agent, as instructed. Rewriting the section heading and text fixed retrieval, raising factual accuracy to 100%.
+
+Model: `gemini-3.8-flash` with fallback to other Gemini Flash models. Full results in `resultados/avaliacao.csv`.
 
 ## Run locally
 
 ```bash
 python -m venv .venv
-source .venv/Scripts/activate      # Windows (Git Bash); on Linux/Mac: source .venv/bin/activate
+source .venv/bin/activate          # Windows PowerShell: .venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 cp .env.example .env               # add your API key
 python preparar_dados.py           # builds data/olist_amostra.db
