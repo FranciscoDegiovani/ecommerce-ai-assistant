@@ -9,7 +9,7 @@ AI customer-service assistant for a fictional online tech store (TechNova). An L
 | `buscar_politica` | Returns, warranty, shipping, payment, cancellation | RAG with multilingual embeddings |
 | `resumo_avaliacoes` | Average rating and real customer comments by category | SQL aggregation |
 
-**Live demo:** LINK_DO_APP
+**Live demo:** https://technova-assistant.streamlit.app
 
 ![demo](demo.gif)
 
